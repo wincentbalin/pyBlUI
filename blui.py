@@ -32,13 +32,13 @@ def train_model(args):
             self.columnconfigure(tuple(range(grid_width)), weight=1)
             self.rowconfigure(tuple(range(grid_height)), weight=1)
 
-            self.labels = []
+            self.regions = []
             for grid_x in range(grid_width):
                 for grid_y in range(grid_height):
                     text = 'Region {index}'.format(index=grid_y * grid_width + grid_x + 1)
-                    label = Label(self, text='X')
-                    label.grid(column=grid_x, row=grid_y, sticky='NWSE')
-                    self.labels.append(label)
+                    region = Label(self, text='X')
+                    region.grid(column=grid_x, row=grid_y, sticky='NWSE')
+                    self.regions.append(region)
 
     monitor = all_monitors[args.monitor_index]
     microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
