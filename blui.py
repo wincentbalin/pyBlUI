@@ -45,6 +45,7 @@ def train_model(args):
     resolution = tuple(map(int, args.grid_resolution.split('x')))
 
     root = Tk()
+    root.title('Train BlUI')
     root.geometry('100x100+{x}+{y}'.format(x=monitor.x, y=monitor.y))
     root.state('zoomed')
     root.resizable(False, False)
