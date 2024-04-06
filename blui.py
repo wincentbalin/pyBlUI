@@ -26,7 +26,7 @@ def train_model(args):
         def __init__(self, master, mic, res):
             super().__init__(master)
             grid_width, grid_height = res
-            self.grid(column=0, row=0, sticky='NSWE')
+            self.grid(column=0, row=0, sticky='NWSE')
             self.rowconfigure(0, weight=1)
             self.columnconfigure(0, weight=1)
             self.columnconfigure(tuple(range(grid_width)), weight=1)
