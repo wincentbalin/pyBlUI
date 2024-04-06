@@ -1,0 +1,5 @@
+screeninfo
+sounddevice
+numpy
+scikit-learn
+
