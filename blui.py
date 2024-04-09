@@ -3,7 +3,6 @@
 
 import screeninfo
 import sounddevice
-import numpy
 
 
 def list_monitors(args):
@@ -20,10 +19,11 @@ def train_model(args):
     all_monitors = screeninfo.get_monitors()
     all_microphones = list(filter(lambda d: d['max_input_channels'] > 0, sounddevice.query_devices()))
 
+    import random
     from tkinter import Tk, Frame, Label
 
     class Trainer(Frame):
-        def __init__(self, master, mic, res):
+        def __init__(self, master, res):
             super().__init__(master)
             grid_width, grid_height = res
             self.grid(column=0, row=0, sticky='NWSE')
@@ -33,15 +33,53 @@ def train_model(args):
             self.rowconfigure(tuple(range(grid_height)), weight=1)
 
             self.regions = []
+            self.region_coords = []
             for grid_x in range(grid_width):
                 for grid_y in range(grid_height):
                     text = 'Region {index}'.format(index=grid_y * grid_width + grid_x + 1)
-                    region = Label(self, text='X')
+                    region = Label(self, text='', highlightthickness=2)
                     region.grid(column=grid_x, row=grid_y, sticky='NWSE')
                     self.regions.append(region)
+                    self.region_coords.append({'x': grid_x, 'y': grid_y})
+
+            self.recording_duration = 4.0
+            self.pause_duration = 2.0
+            self.training_queue = []
+            self.training_index = None
+            self.training_sample = None
+            self.training_samples = []
+
+        def start_training(self):
+            steps_per_region = 1
+            random.seed()
+            self.training_queue = random.sample(range(len(self.regions)), len(self.regions)) * steps_per_region
+            self.master.after(1, self.start_step)
+
+        def start_step(self):
+            if self.training_index is not None:
+                self.regions[self.training_index].config(text='', highlightbackground=self.master.cget('bg'))
+            if not self.training_queue:
+                self.master.destroy()
+            self.training_index = self.training_queue.pop()
+            self.regions[self.training_index].config(text='Blow at me', highlightbackground='yellow')
+            fs = sounddevice.default.samplerate
+            self.training_sample = sounddevice.rec(int(self.recording_duration * fs), samplerate=fs, channels=1)
+            self.master.after(int(self.recording_duration * 1000), self.end_step)
+
+        def end_step(self):
+            sounddevice.wait()
+            self.regions[self.training_index].config(text='Thank you', highlightbackground='lightgreen')
+            self.training_samples.append((self.training_sample, self.region_coords[self.training_index]))
+            self.master.after(int(self.pause_duration * 1000), self.start_step)
+
+        def get_recorded_samples(self):
+            return self.training_samples
+
+    microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
+    sounddevice.default.device = microphone['name']
+    sounddevice.default.samplerate = args.sample_rate
 
     monitor = all_monitors[args.monitor_index]
-    microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
     resolution = tuple(map(int, args.grid_resolution.split('x')))
 
     root = Tk()
@@ -52,7 +90,8 @@ def train_model(args):
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
-    app = Trainer(root, microphone, resolution)
+    app = Trainer(root, resolution)
+    app.start_training()
     app.mainloop()
 
 
@@ -66,6 +105,7 @@ def main():
     parser2 = subparsers.add_parser('list_microphones', help='List microphones')
     parser2.set_defaults(func=list_microphones)
     parser3 = subparsers.add_parser('train_model', help='Record audio and train model')
+    parser3.add_argument('--sample_rate', type=int, default=44100, help='Sample rate')
     parser3.add_argument('monitor_index', type=int, help='Index of monitor (run command list_monitors)')
     parser3.add_argument('microphone_index', type=int, help='Index of microphone (run command list_microphones)')
     parser3.add_argument('grid_resolution', help='Grid resolution (WxH, for example 3x3)')
