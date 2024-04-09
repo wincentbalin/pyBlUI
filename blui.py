@@ -69,7 +69,7 @@ def train_model(args):
 
         def end_step(self):
             sounddevice.wait()
-            self.regions[self.training_index].config(text='Thank you', highlightbackground='lightgreen')
+            self.regions[self.training_index].config(text='Inhale again, please!', highlightbackground='lightgreen')
             self.training_samples.append((self.training_sample, self.region_coords[self.training_index]))
             self.master.after(int(self.pause_duration * 1000), self.start_step)
 
