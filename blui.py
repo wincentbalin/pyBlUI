@@ -60,6 +60,7 @@ def train_model(args):
                 self.regions[self.training_index].config(text='', highlightbackground=self.master.cget('bg'))
             if not self.training_queue:
                 self.master.destroy()
+                return
             self.training_index = self.training_queue.pop()
             self.regions[self.training_index].config(text='Blow at me', highlightbackground='yellow')
             fs = sounddevice.default.samplerate
