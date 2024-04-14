@@ -63,7 +63,8 @@ def train_model(args):
                 self.master.destroy()
                 return
             self.training_index = self.training_queue.pop()
-            self.regions[self.training_index].config(text='Blow at me', highlightbackground='yellow')
+            text = 'Blow at me\nRemaining samples: {}'.format(len(self.training_queue))
+            self.regions[self.training_index].config(text=text, highlightbackground='yellow')
             self.training_sample = sounddevice.rec(int(self.recording_duration * self.fs), samplerate=self.fs, channels=1)
             self.master.after(int(self.recording_duration * 1000), self.end_step)
 
