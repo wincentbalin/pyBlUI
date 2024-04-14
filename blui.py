@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Implementation of BlUI (http://doi.acm.org/10.1145/1294211.1294250)."""
-
+import math
 import screeninfo
 import sounddevice
 
@@ -23,7 +23,7 @@ def train_model(args):
     from tkinter import Tk, Frame, Label
 
     class Trainer(Frame):
-        def __init__(self, master, res):
+        def __init__(self, master, res, sample_rate: int, data_width: int):
             super().__init__(master)
             grid_width, grid_height = res
             self.grid(column=0, row=0, sticky='NWSE')
@@ -44,15 +44,18 @@ def train_model(args):
 
             self.recording_duration = 4.0
             self.pause_duration = 2.0
+            self.fs = sample_rate
+            self.data_width = data_width
+            self.training_samples_per_region = 500
+            self.steps_per_region = math.ceil(self.training_samples_per_region / (self.fs / self.data_width))
             self.training_queue = []
             self.training_index = None
             self.training_sample = None
             self.training_samples = []
 
         def start_training(self):
-            steps_per_region = 1
             random.seed()
-            self.training_queue = random.sample(range(len(self.regions)), len(self.regions)) * steps_per_region
+            self.training_queue = random.sample(range(len(self.regions)), len(self.regions)) * self.steps_per_region
             self.master.after(1, self.start_step)
 
         def start_step(self):
@@ -63,8 +66,7 @@ def train_model(args):
                 return
             self.training_index = self.training_queue.pop()
             self.regions[self.training_index].config(text='Blow at me', highlightbackground='yellow')
-            fs = sounddevice.default.samplerate
-            self.training_sample = sounddevice.rec(int(self.recording_duration * fs), samplerate=fs, channels=1)
+            self.training_sample = sounddevice.rec(int(self.recording_duration * self.fs), samplerate=self.fs, channels=1)
             self.master.after(int(self.recording_duration * 1000), self.end_step)
 
         def end_step(self):
@@ -91,7 +93,8 @@ def train_model(args):
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
-    app = Trainer(root, resolution)
+    data_width = 1024
+    app = Trainer(root, resolution, args.sample_rate, data_width)
     app.start_training()
     app.mainloop()
 
