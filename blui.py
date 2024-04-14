@@ -143,7 +143,7 @@ def main():
     parser3.add_argument('monitor_index', type=int, help='Index of monitor (run command list_monitors)')
     parser3.add_argument('microphone_index', type=int, help='Index of microphone (run command list_microphones)')
     parser3.add_argument('grid_resolution', help='Grid resolution (WxH, for example 3x3)')
-    parser3.add_argument('model_name', help='Name of the model in TODO format')
+    parser3.add_argument('model_name', help='Name of the model in pickle format')
     parser3.set_defaults(func=train_model)
     args = parser.parse_args()
     try:
