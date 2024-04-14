@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """Implementation of BlUI (http://doi.acm.org/10.1145/1294211.1294250)."""
 
+import pickle
 import screeninfo
 import sounddevice
+from numpy import hanning, arange, split, pad, hstack, vstack
+from scipy.fft import fft, fftshift
+from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+DATA_WIDTH = 1024
 
 
 def list_monitors(args):
@@ -81,7 +89,6 @@ def train_model(args):
 
     monitor = all_monitors[args.monitor_index]
     resolution = tuple(map(int, args.grid_resolution.split('x')))
-    data_width = 1024
 
     root = Tk()
     root.title('Train BlUI')
@@ -91,9 +98,36 @@ def train_model(args):
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
-    app = Trainer(root, resolution, args.sample_rate, data_width)
+    app = Trainer(root, resolution, args.sample_rate, DATA_WIDTH)
     app.start_training()
     app.mainloop()
+
+    data_vectors, targets = [], []
+    window = hanning(DATA_WIDTH)
+    for sample, sample_index in app.get_recorded_samples():
+        chunks = split(sample[:, 0], indices_or_sections=list(range(DATA_WIDTH, len(sample), DATA_WIDTH)))
+        if chunks[-1].size < DATA_WIDTH:
+            chunks[-1] = pad(chunks[-1], (0, DATA_WIDTH - chunks[-1].size))
+        for chunk in chunks:
+            spectrum = fftshift(fft(chunk * window))
+            data_vector = hstack((spectrum.real, spectrum.imag))
+            data_vectors.append(data_vector)
+            targets.append(sample_index)
+    data = vstack(data_vectors)
+    pca = PCA(n_components=32)
+    pca.fit(data)
+    data = pca.transform(data)
+    # From https://towardsdatascience.com/building-a-k-nearest-neighbors-k-nn-model-with-scikit-learn-51209555453a
+    knn = KNeighborsClassifier()
+    param_grid = {'n_neighbors': arange(1, 25)}
+    knn_gscv = GridSearchCV(knn, param_grid)
+    knn_gscv.fit(data, targets)
+    n_neighbors = knn_gscv.best_params_['n_neighbors']
+    print('Best KNN score: {score} ({n})'.format(score=knn_gscv.best_score_, n=n_neighbors))
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors)
+    knn.fit(data, targets)
+    with open(args.model_name, 'wb') as f:
+        pickle.dump([pca, knn], f)
 
 
 def main():
