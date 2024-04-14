@@ -81,6 +81,7 @@ def train_model(args):
 
     monitor = all_monitors[args.monitor_index]
     resolution = tuple(map(int, args.grid_resolution.split('x')))
+    data_width = 1024
 
     root = Tk()
     root.title('Train BlUI')
@@ -90,7 +91,6 @@ def train_model(args):
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
-    data_width = 1024
     app = Trainer(root, resolution, args.sample_rate, data_width)
     app.start_training()
     app.mainloop()
