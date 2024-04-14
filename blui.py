@@ -31,7 +31,7 @@ def train_model(args):
     from tkinter import Tk, Frame, Label
 
     class Trainer(Frame):
-        def __init__(self, master, res, sample_rate: int, data_width: int):
+        def __init__(self, master, res, sample_rate: int):
             super().__init__(master)
             grid_width, grid_height = res
             self.grid(column=0, row=0, sticky='NWSE')
@@ -51,7 +51,6 @@ def train_model(args):
             self.recording_duration = 4.0
             self.pause_duration = 2.0
             self.fs = sample_rate
-            self.data_width = data_width
             self.training_queue = []
             self.training_index = None
             self.training_sample = None
@@ -98,7 +97,7 @@ def train_model(args):
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
 
-    app = Trainer(root, resolution, args.sample_rate, DATA_WIDTH)
+    app = Trainer(root, resolution, args.sample_rate)
     app.start_training()
     app.mainloop()
 
