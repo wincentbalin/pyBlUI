@@ -1,5 +1,6 @@
 screeninfo
 sounddevice
 numpy
+scipy
 scikit-learn
 
