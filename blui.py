@@ -33,14 +33,12 @@ def train_model(args):
             self.rowconfigure(tuple(range(grid_height)), weight=1)
 
             self.regions = []
-            self.region_coords = []
             for grid_x in range(grid_width):
                 for grid_y in range(grid_height):
                     text = 'Region {index}'.format(index=grid_y * grid_width + grid_x + 1)
                     region = Label(self, text='', highlightthickness=2)
                     region.grid(column=grid_x, row=grid_y, sticky='NWSE')
                     self.regions.append(region)
-                    self.region_coords.append({'x': grid_x, 'y': grid_y})
 
             self.recording_duration = 4.0
             self.pause_duration = 2.0
@@ -72,7 +70,7 @@ def train_model(args):
         def end_step(self):
             sounddevice.wait()
             self.regions[self.training_index].config(text='Inhale again, please!', highlightbackground='lightgreen')
-            self.training_samples.append((self.training_sample, self.region_coords[self.training_index]))
+            self.training_samples.append((self.training_sample, self.training_index))
             self.master.after(int(self.pause_duration * 1000), self.start_step)
 
         def get_recorded_samples(self):
