@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Implementation of BlUI (http://doi.acm.org/10.1145/1294211.1294250)."""
-import math
+
 import screeninfo
 import sounddevice
 
@@ -44,8 +44,6 @@ def train_model(args):
             self.pause_duration = 2.0
             self.fs = sample_rate
             self.data_width = data_width
-            self.training_samples_per_region = 500
-            self.steps_per_region = math.ceil(self.training_samples_per_region / (self.fs / self.data_width))
             self.training_queue = []
             self.training_index = None
             self.training_sample = None
@@ -53,7 +51,7 @@ def train_model(args):
 
         def start_training(self):
             random.seed()
-            self.training_queue = random.sample(range(len(self.regions)), len(self.regions)) * self.steps_per_region
+            self.training_queue = random.sample(range(len(self.regions)), len(self.regions))
             self.master.after(1, self.start_step)
 
         def start_step(self):
