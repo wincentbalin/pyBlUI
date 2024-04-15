@@ -9,6 +9,7 @@ from scipy.fft import fft, fftshift
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
 DATA_WIDTH = 1024
 
@@ -126,7 +127,78 @@ def train_model(args):
     knn = KNeighborsClassifier(n_neighbors=n_neighbors)
     knn.fit(data, targets)
     with open(args.model_name, 'wb') as f:
-        pickle.dump([pca, knn], f)
+        pickle.dump(pca, f)
+        pickle.dump(knn, f)
+
+
+def test_model(args):
+    all_monitors = screeninfo.get_monitors()
+    all_microphones = list(filter(lambda d: d['max_input_channels'] > 0, sounddevice.query_devices()))
+
+    from tkinter import Tk, Frame, Label
+
+    class Tester(Frame):
+        def __init__(self, master, res, sample_rate: int):
+            super().__init__(master)
+            grid_width, grid_height = res
+            self.grid(column=0, row=0, sticky='NWSE')
+            self.rowconfigure(0, weight=1)
+            self.columnconfigure(0, weight=1)
+            self.columnconfigure(tuple(range(grid_width)), weight=1)
+            self.rowconfigure(tuple(range(grid_height)), weight=1)
+
+            self.regions = []
+            for grid_x in range(grid_width):
+                for grid_y in range(grid_height):
+                    text = 'Region {index}'.format(index=grid_y * grid_width + grid_x + 1)
+                    region = Label(self, text='', highlightthickness=2)
+                    region.grid(column=grid_x, row=grid_y, sticky='NWSE')
+                    self.regions.append(region)
+
+            self.fs = sample_rate
+            self.recording_delay = int(DATA_WIDTH / self.fs * 1000)
+            self.recording = None
+            self.predicted_region_index = None
+            self.window = hanning(DATA_WIDTH)
+            self.clf = None
+
+        def load_model(self, fn: str):
+            with open(fn, 'rb') as f:
+                pca = pickle.load(f)
+                knn = pickle.load(f)
+            self.clf = Pipeline(steps=[('pca', pca), ('knn', knn)])
+
+        def predict(self):
+            if self.predicted_region_index is not None:
+                self.regions[self.predicted_region_index].config(text='')
+            if self.recording is not None:
+                sounddevice.wait()
+                spectrum = fftshift(fft(self.recording[:, 0] * self.window))
+                data = hstack((spectrum.real, spectrum.imag))
+                p = self.clf.predict([data])
+                print(p)
+            self.recording = sounddevice.rec(DATA_WIDTH, samplerate=self.fs, channels=1)
+            self.master.after(self.recording_delay, self.predict)
+
+    microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
+    sounddevice.default.device = microphone['name']
+    sounddevice.default.samplerate = args.sample_rate
+
+    monitor = all_monitors[args.monitor_index]
+    resolution = tuple(map(int, args.grid_resolution.split('x')))
+
+    root = Tk()
+    root.title('Test BlUI')
+    root.geometry('100x100+{x}+{y}'.format(x=monitor.x, y=monitor.y))
+    root.state('zoomed')
+    root.resizable(False, False)
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+
+    app = Tester(root, resolution, args.sample_rate)
+    app.load_model(args.model_name)
+    app.predict()
+    app.mainloop()
 
 
 def main():
@@ -145,6 +217,13 @@ def main():
     parser3.add_argument('grid_resolution', help='Grid resolution (WxH, for example 3x3)')
     parser3.add_argument('model_name', help='Name of the model in pickle format')
     parser3.set_defaults(func=train_model)
+    parser4 = subparsers.add_parser('test_model', help='Test model')
+    parser4.add_argument('--sample_rate', type=int, default=44100, help='Sample rate')
+    parser4.add_argument('monitor_index', type=int, help='Index of monitor (run command list_monitors)')
+    parser4.add_argument('microphone_index', type=int, help='Index of microphone (run command list_microphones)')
+    parser4.add_argument('grid_resolution', help='Grid resolution (WxH, for example 3x3)')
+    parser4.add_argument('model_name', help='Name of the model in pickle format')
+    parser4.set_defaults(func=test_model)
     args = parser.parse_args()
     try:
         args.func(args)
