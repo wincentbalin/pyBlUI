@@ -84,7 +84,7 @@ def train_model(args):
             return self.training_samples
 
     microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
-    sounddevice.default.device = microphone['name']
+    sounddevice.default.device = microphone['index']
     sounddevice.default.samplerate = args.sample_rate
 
     monitor = all_monitors[args.monitor_index]
@@ -181,7 +181,7 @@ def test_model(args):
             self.master.after(self.recording_delay, self.predict)
 
     microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
-    sounddevice.default.device = microphone['name']
+    sounddevice.default.device = microphone['index']
     sounddevice.default.samplerate = args.sample_rate
 
     monitor = all_monitors[args.monitor_index]
