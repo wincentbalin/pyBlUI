@@ -66,7 +66,7 @@ def train_model(args):
             if self.training_index is not None:
                 self.regions[self.training_index].config(text='', highlightbackground=self.master.cget('bg'))
             if not self.training_queue:
-                self.master.destroy()
+                self.master.after(1, self.record_silence)
                 return
             self.training_index = self.training_queue.pop()
             text = 'Blow at me\nRemaining samples: {}'.format(len(self.training_queue))
@@ -79,6 +79,17 @@ def train_model(args):
             self.regions[self.training_index].config(text='Inhale again, please!', highlightbackground='lightgreen')
             self.training_samples.append((self.training_sample, self.training_index))
             self.master.after(int(self.pause_duration * 1000), self.start_step)
+
+        def record_silence(self):
+            self.master.withdraw()  # Iconify root window
+            self.training_index = -1
+            self.training_sample = sounddevice.rec(int(self.recording_duration * self.fs), samplerate=self.fs, channels=1)
+            self.master.after(int(self.recording_duration * 1000), self.end_collection)
+
+        def end_collection(self):
+            sounddevice.wait()
+            self.training_samples.append((self.training_sample, self.training_index))
+            self.master.destroy()
 
         def get_recorded_samples(self):
             return self.training_samples
