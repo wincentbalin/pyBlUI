@@ -179,17 +179,26 @@ def test_model(args):
                 knn = pickle.load(f)
             self.clf = Pipeline(steps=[('pca', pca), ('knn', knn)])
 
-        def predict(self):
-            if self.predicted_region_index is not None:
-                self.regions[self.predicted_region_index].config(text='')
-            if self.recording is not None:
-                sounddevice.wait()
-                spectrum = fftshift(fft(self.recording[:, 0] * self.window))
-                data = hstack((spectrum.real, spectrum.imag))
-                p = self.clf.predict([data])
-                print(p)
+        def start_prediction(self):
+            self.master.after(1, self.record)
+
+        def record(self):
             self.recording = sounddevice.rec(DATA_WIDTH, samplerate=self.fs, channels=1)
             self.master.after(self.recording_delay, self.predict)
+
+        def predict(self):
+            sounddevice.wait()
+            spectrum = fftshift(fft(self.recording[:, 0] * self.window))
+            data = hstack((spectrum.real, spectrum.imag))
+            prediction = self.clf.predict([data])
+            predicted_region_index = prediction[0]
+            if predicted_region_index != self.predicted_region_index:
+                for region in self.regions:
+                    region.config(text='')
+                if prediction != -1:
+                    self.regions[predicted_region_index].config(text='HERE')
+            self.predicted_region_index = predicted_region_index
+            self.master.after(100, self.record)
 
     microphone = next(filter(lambda d: d['index'] == args.microphone_index, all_microphones))
     sounddevice.default.device = microphone['index']
@@ -208,7 +217,7 @@ def test_model(args):
 
     app = Tester(root, resolution, args.sample_rate)
     app.load_model(args.model_name)
-    app.predict()
+    app.start_prediction()
     app.mainloop()
 
 
