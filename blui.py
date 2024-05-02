@@ -49,8 +49,8 @@ def train_model(args):
                     region.grid(column=grid_x, row=grid_y, sticky='NWSE')
                     self.regions.append(region)
 
-            self.recording_duration = 4.0
-            self.pause_duration = 2.0
+            self.recording_delay = 4.0
+            self.pause_delay = 2.0
             self.fs = sample_rate
             self.training_queue = []
             self.training_index = None
@@ -71,20 +71,20 @@ def train_model(args):
             self.training_index = self.training_queue.pop()
             text = 'Blow at me\nRemaining samples: {}'.format(len(self.training_queue))
             self.regions[self.training_index].config(text=text, highlightbackground='yellow')
-            self.training_sample = sounddevice.rec(int(self.recording_duration * self.fs), samplerate=self.fs, channels=1)
-            self.master.after(int(self.recording_duration * 1000), self.end_step)
+            self.training_sample = sounddevice.rec(int(self.recording_delay * self.fs), samplerate=self.fs, channels=1)
+            self.master.after(int(self.recording_delay * 1000), self.end_step)
 
         def end_step(self):
             sounddevice.wait()
             self.regions[self.training_index].config(text='Inhale again, please!', highlightbackground='lightgreen')
             self.training_samples.append((self.training_sample, self.training_index))
-            self.master.after(int(self.pause_duration * 1000), self.start_step)
+            self.master.after(int(self.pause_delay * 1000), self.start_step)
 
         def record_silence(self):
             self.master.withdraw()  # Iconify root window
             self.training_index = -1
-            self.training_sample = sounddevice.rec(int(self.recording_duration * self.fs), samplerate=self.fs, channels=1)
-            self.master.after(int(self.recording_duration * 1000), self.end_collection)
+            self.training_sample = sounddevice.rec(int(self.recording_delay * self.fs), samplerate=self.fs, channels=1)
+            self.master.after(int(self.recording_delay * 1000), self.end_collection)
 
         def end_collection(self):
             sounddevice.wait()
