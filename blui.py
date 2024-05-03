@@ -50,7 +50,7 @@ def train_model(args):
                     self.regions.append(region)
 
             self.recording_delay = 4.0
-            self.pause_delay = 2.0
+            self.pause_delay = 4.0
             self.fs = sample_rate
             self.training_queue = []
             self.training_index = None
